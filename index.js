@@ -1,5 +1,13 @@
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionsBitField } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } = require('discord.js');
 const fs = require('fs');
+const http = require('http');
+
+// Создаем мини-сервер, чтобы Render не усыплял бота
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot is alive!');
+});
+server.listen(process.env.PORT || 3000);
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
 
@@ -8,7 +16,7 @@ const DATA_FILE = './config.json';
 function loadConfig() { return fs.existsSync(DATA_FILE) ? JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')) : {}; }
 function saveConfig(cfg) { fs.writeFileSync(DATA_FILE, JSON.stringify(cfg, null, 4)); }
 
-client.once('ready', async () => {
+client.once('clientReady', async () => {
     const setup = new SlashCommandBuilder()
         .setName('setup')
         .setDescription('Створити панель збору')
@@ -20,7 +28,6 @@ client.once('ready', async () => {
     console.log('Бот в мережі! Все працює!');
 });
 
-// ЛОГІКА КІКУ З ЗАКРИТОГО ВОЙСУ
 client.on('voiceStateUpdate', async (oldState, newState) => {
     const config = loadConfig();
     const isLocked = Object.values(config).some(s => s.target === newState.channelId);
