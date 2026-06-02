@@ -3,20 +3,19 @@ const fs = require('fs');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
 
-const TOKEN = 'queuebottytop'; 
 const DATA_FILE = './config.json';
 
 function loadConfig() { return fs.existsSync(DATA_FILE) ? JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')) : {}; }
 function saveConfig(cfg) { fs.writeFileSync(DATA_FILE, JSON.stringify(cfg, null, 4)); }
 
-client.once('clientReady', async () => {
+client.once('ready', async () => {
     const setup = new SlashCommandBuilder()
         .setName('setup')
         .setDescription('Створити панель збору')
         .addChannelOption(o => o.setName('target').setDescription('Ігровий войс').setRequired(true).addChannelTypes(ChannelType.GuildVoice))
         .addIntegerOption(o => o.setName('limit').setDescription('Ліміт (мінімально 2)').setRequired(false));
 
-    const rest = new REST({ version: '10' }).setToken(TOKEN);
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     await rest.put(Routes.applicationCommands(client.user.id), { body: [setup.toJSON()] });
     console.log('Бот в мережі! Все працює!');
 });
@@ -77,7 +76,6 @@ client.on('interactionCreate', async (i) => {
             
             const notifyMsg = await i.channel.send(`🔥 **Готово!** ${s.players.map(id => `<@${id}>`).join(', ')}\n👉 **Заходьте у войс:** <#${s.target}>`);
             
-            // Переміщення в канал
             for (const id of s.players) {
                 const member = await i.guild.members.fetch(id).catch(() => null);
                 if (member && member.voice.channelId) {
