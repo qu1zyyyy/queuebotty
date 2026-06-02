@@ -1,8 +1,8 @@
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionsBitField } = require('discord.js');
 const fs = require('fs');
 const http = require('http');
 
-// Создаем мини-сервер, чтобы Render не усыплял бота
+// Сервер для предотвращения усыпления бота на Render
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('Bot is alive!');
@@ -65,19 +65,23 @@ client.on('interactionCreate', async (i) => {
         const config = loadConfig();
         if (!config[i.message.id]) return;
 
-        await i.deferUpdate().catch(() => {});
-        const s = config[i.message.id];
-
-        if (i.customId === 'join' && !s.players.includes(i.user.id)) s.players.push(i.user.id);
-        if (i.customId === 'leave') s.players = s.players.filter(id => id !== i.user.id);
-        
+        // Проверка прав администратора для кнопки закрытия
         if (i.customId === 'close') {
+            if (!i.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+                return i.reply({ content: '❌ Тільки адміністратор може закрити лоббі!', ephemeral: true });
+            }
             await i.message.delete().catch(() => {});
             delete config[i.message.id];
             saveConfig(config);
             return;
         }
 
+        await i.deferUpdate().catch(() => {});
+        const s = config[i.message.id];
+
+        if (i.customId === 'join' && !s.players.includes(i.user.id)) s.players.push(i.user.id);
+        if (i.customId === 'leave') s.players = s.players.filter(id => id !== i.user.id);
+        
         if (s.players.length >= s.limit) {
             await i.message.edit({ embeds: [new EmbedBuilder().setTitle('🚀 Стати зібрано!').setColor('#00ff00')], components: [] });
             
