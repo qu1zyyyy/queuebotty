@@ -68,7 +68,7 @@ client.on('interactionCreate', async (i) => {
         // Проверка прав администратора для кнопки закрытия
         if (i.customId === 'close') {
             if (!i.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return i.reply({ content: '❌ Тільки адміністратор може закрити лоббі!', ephemeral: true });
+                return i.reply({ content: '❌ Тільки адміністратор може закрити лоббі! Попросiть роль у овнера.', ephemeral: true });
             }
             await i.message.delete().catch(() => {});
             delete config[i.message.id];
