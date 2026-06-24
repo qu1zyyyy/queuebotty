@@ -1,5 +1,4 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
-const { status } = require('mcstatus');
 const http = require('http');
 
 const PORT = process.env.PORT || 3000;
@@ -11,45 +10,45 @@ http.createServer((req, res) => {
 });
 
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+    intents: [GatewayIntentBits.Guilds]
 });
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const MY_ID = '917065909762416641';
-const FRIEND_ID = '1239574407077171222'; // <--- ВАЖНО: Если тут текст, бот будет выдавать ошибку!
+const FRIEND_ID = '1239574407077171222';
 const SERVER_IP = 'operation-jessica.gl.joinmc.link';
 
 let isNotified = false;
 
-client.once('ready', () => {
-    console.log(`Бот в сети: ${client.user.tag}`);
-    console.log(`Мониторим сервер: ${SERVER_IP}`);
-});
-
-setInterval(async () => {
+async function checkServer() {
     try {
-        console.log(`Проверяем статус сервера...`);
-        const res = await status.java(SERVER_IP);
-        console.log(`Статус: ${res.online ? 'ОНЛАЙН' : 'ОФФЛАЙН'}`);
+        console.log('Проверяем статус сервера...');
 
-        if (res.online) {
+        const res = await fetch(`https://api.mcstatus.io/v2/status/java/${SERVER_IP}`);
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+        const data = await res.json();
+
+        console.log(`Статус: ${data.online ? 'ОНЛАЙН' : 'ОФФЛАЙН'}`);
+
+        if (data.online) {
             if (!isNotified) {
-                console.log("Сервер онлайн, готовим уведомление...");
+                console.log('Сервер онлайн, готовим уведомление...');
 
                 const embed = new EmbedBuilder()
                     .setTitle('🚀 Сервер запущен!')
                     .setColor(0x00FF00)
-                    .setDescription(`IP: \`${SERVER_IP}\``)
+                    .setDescription(`IP: \`${SERVER_IP}\`\nИгроков: ${data.players?.online ?? 0}/${data.players?.max ?? '?'}`)
                     .setTimestamp();
 
                 const sendDM = async (userId) => {
-                    if (!userId || userId === 'ID_ДРУГА') return; // Проверка, чтобы не слать на текст
                     try {
                         const user = await client.users.fetch(userId);
                         await user.send({ embeds: [embed] });
                         console.log(`Успешно отправлено пользователю: ${user.tag}`);
                     } catch (err) {
-                        console.error(`Ошибка при отправке ЛС:`, err);
+                        console.error('Ошибка при отправке ЛС:', err.message);
                     }
                 };
 
@@ -62,9 +61,16 @@ setInterval(async () => {
             isNotified = false;
         }
     } catch (e) {
-        console.error("Ошибка при проверке сервера:", e.message);
+        console.error('Ошибка при проверке сервера:', e.message);
         isNotified = false;
     }
-}, 60000); // Увеличил до 60 секунд, чтобы Render не ругался
+}
+
+client.once('ready', () => {
+    console.log(`Бот в сети: ${client.user.tag}`);
+    console.log(`Мониторим сервер: ${SERVER_IP}`);
+    checkServer();
+    setInterval(checkServer, 60000);
+});
 
 client.login(TOKEN);
