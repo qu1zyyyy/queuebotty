@@ -1,6 +1,9 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const { status } = require('mcstatus');
 const http = require('http');
+http.createServer((req, res) => {
+    res.end('Bot is running');
+}).listen(3000);
 
 // Создаем HTTP-сервер для Render, чтобы он не выключал бота
 http.createServer((req, res) => {
