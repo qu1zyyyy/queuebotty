@@ -1,5 +1,12 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const { status } = require('mcstatus');
+const http = require('http');
+
+// Создаем HTTP-сервер для Render, чтобы он не выключал бота
+http.createServer((req, res) => {
+    res.write('Bot is running');
+    res.end();
+}).listen(3000);
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
@@ -7,8 +14,8 @@ const client = new Client({
 
 // НАСТРОЙКИ
 const TOKEN = process.env.DISCORD_TOKEN;
-const MY_ID = '917065909762416641';
-const FRIEND_ID = '1239574407077171222';
+const MY_ID = '917065909762416641'; // Замени на свой ID
+const FRIEND_ID = 'ID_ДРУГА'; // Замени на ID друга
 const SERVER_IP = 'operation-jessica.gl.joinmc.link';
 
 let isNotified = false;
@@ -22,23 +29,20 @@ client.once('ready', () => {
 
             if (res.online) {
                 if (!isNotified) {
-                    // Формируем список игроков
                     const playersList = res.players.list && res.players.list.length > 0
                         ? res.players.list.map(p => p.name_clean).join(', ')
                         : "Никого нет";
 
-                    // Создаем красивое сообщение
                     const embed = new EmbedBuilder()
-                        .setTitle('🚀 Уведомляю что сервер запущен!')
+                        .setTitle('🚀 Сервер запущен!')
                         .setColor(0x00FF00)
-                        .setDescription(`Приятной игры! Скопировать IP:`)
+                        .setDescription(`Приятной игры! Скопируй IP ниже:`)
                         .addFields(
                             { name: 'IP адрес', value: `\`${SERVER_IP}\`` },
-                            { name: `Игроки онлайн (${res.players.online}/${res.players.max})`, value: playersList }
+                            { name: `Игроки (${res.players.online}/${res.players.max})`, value: playersList }
                         )
                         .setTimestamp();
 
-                    // Функция для отправки в ЛС
                     const sendDM = async (userId) => {
                         try {
                             const user = await client.users.fetch(userId);
@@ -48,7 +52,6 @@ client.once('ready', () => {
                         }
                     };
 
-                    // Отправляем обоим
                     await sendDM(MY_ID);
                     await sendDM(FRIEND_ID);
 
@@ -60,7 +63,7 @@ client.once('ready', () => {
         } catch (e) {
             isNotified = false;
         }
-    }, 30000); // Проверка каждые 30 секунд
+    }, 30000);
 });
 
 client.login(TOKEN);
