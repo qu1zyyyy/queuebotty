@@ -49,7 +49,9 @@ client.once('ready', () => {
                     const sendDM = async (userId) => {
                         try {
                             const user = await client.users.fetch(userId);
+                            console.log(`Попытка отправить ЛС пользователю: ${user.tag}`);
                             await user.send({ embeds: [embed] });
+                            console.log(`Успешно отправлено пользователю: ${user.tag}`);
                         } catch (err) {
                             console.error(`Ошибка при отправке ЛС пользователю ${userId}:`, err);
                         }
