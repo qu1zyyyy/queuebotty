@@ -8,7 +8,7 @@ const DISCORD_TOKEN = process.env.DISCORD_TOKEN; // Вставь токен сю
 const MC_CONFIG = {
     ip: 'localhost',
     port: 25565,
-    adminIds: ['ID_ДРУГА_1', 'ID_ДРУГА_2'] // ID сюда
+    adminIds: ['1239574407077171222', '917065909762416641'] // ID сюда
 };
 let isMcOnline = false;
 

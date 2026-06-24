@@ -6,13 +6,8 @@
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "discord.js": "^14.26.4",
-    "mcstatus": "^1.0.1",
-    "node-mcstatus": "^1.2.1"
+    "mcstatus": "^1.0.1"
   }
 }
