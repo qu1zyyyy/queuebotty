@@ -26,9 +26,13 @@ const TOKEN = process.env.DISCORD_TOKEN;
 const MY_ID = '917065909762416641';
 const FRIEND_ID = '1239574407077171222';
 const SERVER_IP = 'operation-jessica.gl.joinmc.link';
-const CHECK_INTERVAL = 10000; // было 60000, теперь 10 секунд
+const CHECK_INTERVAL = 10000;
+const REQUIRED_CONFIRMATIONS = 3; // сколько проверок подряд нужно для подтверждения смены статуса
 
-let isNotified = false;
+let isNotified = false;     // было ли уже отправлено уведомление о текущем "онлайн"-периоде
+let confirmedOnline = false; // текущий подтверждённый статус (после дебаунса)
+let onlineStreak = 0;       // счётчик подряд идущих "онлайн" ответов
+let offlineStreak = 0;      // счётчик подряд идущих "оффлайн" ответов
 
 async function getServerStatus() {
     const res = await fetch(`https://api.mcstatus.io/v2/status/java/${SERVER_IP}`);
@@ -43,13 +47,24 @@ async function checkServer() {
         console.log(`Статус: ${data.online ? 'ОНЛАЙН' : 'ОФФЛАЙН'}`);
 
         if (data.online) {
+            onlineStreak++;
+            offlineStreak = 0;
+        } else {
+            offlineStreak++;
+            onlineStreak = 0;
+        }
+
+        // Подтверждаем переход в ОНЛАЙН только после нескольких подряд успешных ответов
+        if (!confirmedOnline && onlineStreak >= REQUIRED_CONFIRMATIONS) {
+            confirmedOnline = true;
+
             if (!isNotified) {
-                console.log('Сервер онлайн, готовим уведомление...');
+                console.log('Сервер подтверждённо онлайн, готовим уведомление...');
 
                 const embed = new EmbedBuilder()
                     .setTitle('👀 Сервер запущен!')
                     .setColor(0x9B59B6)
-                    .setDescription('Уведомляю! Давай заходи! 🚀')
+                    .setDescription('Уведомляю! Давай заходи! 🚀\n\n**Статус:** 🟢 Онлайн')
                     .setFooter({ text: 'Queue Botty • Made With ❤️' })
                     .setTimestamp();
 
@@ -81,12 +96,19 @@ async function checkServer() {
 
                 isNotified = true;
             }
-        } else {
-            isNotified = false;
         }
+
+        // Подтверждаем переход в ОФФЛАЙН только после нескольких подряд неудачных ответов
+        if (confirmedOnline && offlineStreak >= REQUIRED_CONFIRMATIONS) {
+            confirmedOnline = false;
+            isNotified = false; // сбрасываем, чтобы при следующем реальном запуске снова уведомило
+            console.log('Сервер подтверждённо оффлайн.');
+        }
+
     } catch (e) {
         console.error('Ошибка при проверке сервера:', e.message);
-        isNotified = false;
+        // Ошибку API не считаем подтверждением оффлайна — просто пропускаем тик,
+        // чтобы временный сбой сети не сбрасывал статус
     }
 }
 
