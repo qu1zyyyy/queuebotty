@@ -27,17 +27,42 @@ const MY_ID = '917065909762416641';
 const FRIEND_ID = '1239574407077171222';
 const SERVER_IP = 'operation-jessica.gl.joinmc.link';
 const CHECK_INTERVAL = 10000;
-const REQUIRED_CONFIRMATIONS = 3; // сколько проверок подряд нужно для подтверждения смены статуса
+const REQUIRED_CONFIRMATIONS = 3;
 
-let isNotified = false;     // было ли уже отправлено уведомление о текущем "онлайн"-периоде
-let confirmedOnline = false; // текущий подтверждённый статус (после дебаунса)
-let onlineStreak = 0;       // счётчик подряд идущих "онлайн" ответов
-let offlineStreak = 0;      // счётчик подряд идущих "оффлайн" ответов
+let isNotified = false;
+let confirmedOnline = false;
+let onlineStreak = 0;
+let offlineStreak = 0;
+let sentMessages = []; // храним сообщения, которые отправили при онлайне, чтобы потом отредактировать
 
 async function getServerStatus() {
     const res = await fetch(`https://api.mcstatus.io/v2/status/java/${SERVER_IP}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
+}
+
+function buildEmbed(online) {
+    return new EmbedBuilder()
+        .setTitle('👀 Сервер запущен!')
+        .setColor(online ? 0x9B59B6 : 0x99AAB5)
+        .setDescription(`Уведомляю! Давай заходи! 🚀\n\n**Статус:** ${online ? '🟢 Онлайн' : '🔴 Оффлайн'}`)
+        .setFooter({ text: 'Queue Botty • Made With ❤️' })
+        .setTimestamp();
+}
+
+function buildRow() {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('get_ip')
+            .setLabel('Узнать IP')
+            .setEmoji('📋')
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId('get_players')
+            .setLabel('Список игроков')
+            .setEmoji('👥')
+            .setStyle(ButtonStyle.Secondary)
+    );
 }
 
 async function checkServer() {
@@ -54,37 +79,23 @@ async function checkServer() {
             onlineStreak = 0;
         }
 
-        // Подтверждаем переход в ОНЛАЙН только после нескольких подряд успешных ответов
+        // Подтверждённый переход в ОНЛАЙН
         if (!confirmedOnline && onlineStreak >= REQUIRED_CONFIRMATIONS) {
             confirmedOnline = true;
 
             if (!isNotified) {
                 console.log('Сервер подтверждённо онлайн, готовим уведомление...');
 
-                const embed = new EmbedBuilder()
-                    .setTitle('👀 Сервер запущен!')
-                    .setColor(0x9B59B6)
-                    .setDescription('Уведомляю! Давай заходи! 🚀\n\n**Статус:** 🟢 Онлайн')
-                    .setFooter({ text: 'Queue Botty • Made With ❤️' })
-                    .setTimestamp();
+                const embed = buildEmbed(true);
+                const row = buildRow();
 
-                const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('get_ip')
-                        .setLabel('Узнать IP')
-                        .setEmoji('📋')
-                        .setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder()
-                        .setCustomId('get_players')
-                        .setLabel('Список игроков')
-                        .setEmoji('👥')
-                        .setStyle(ButtonStyle.Secondary)
-                );
+                sentMessages = []; // очищаем старые ссылки на сообщения перед новой партией
 
                 const sendDM = async (userId) => {
                     try {
                         const user = await client.users.fetch(userId);
-                        await user.send({ embeds: [embed], components: [row] });
+                        const msg = await user.send({ embeds: [embed], components: [row] });
+                        sentMessages.push(msg); // сохраняем сообщение для будущего редактирования
                         console.log(`О, я отправил сообщение пользователью: ${user.tag}`);
                     } catch (err) {
                         console.error('Я не смог отправить сообщение:', err.message);
@@ -98,17 +109,27 @@ async function checkServer() {
             }
         }
 
-        // Подтверждаем переход в ОФФЛАЙН только после нескольких подряд неудачных ответов
+        // Подтверждённый переход в ОФФЛАЙН
         if (confirmedOnline && offlineStreak >= REQUIRED_CONFIRMATIONS) {
             confirmedOnline = false;
-            isNotified = false; // сбрасываем, чтобы при следующем реальном запуске снова уведомило
-            console.log('Сервер подтверждённо оффлайн.');
+            isNotified = false;
+            console.log('Сервер подтверждённо оффлайн, обновляем сообщения...');
+
+            const offlineEmbed = buildEmbed(false);
+
+            for (const msg of sentMessages) {
+                try {
+                    await msg.edit({ embeds: [offlineEmbed], components: [buildRow()] });
+                } catch (err) {
+                    console.error('Не удалось отредактировать сообщение:', err.message);
+                }
+            }
+
+            sentMessages = []; // очищаем, чтобы не редактировать их повторно при следующем цикле
         }
 
     } catch (e) {
         console.error('Ошибка при проверке сервера:', e.message);
-        // Ошибку API не считаем подтверждением оффлайна — просто пропускаем тик,
-        // чтобы временный сбой сети не сбрасывал статус
     }
 }
 
