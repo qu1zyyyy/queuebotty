@@ -12,7 +12,7 @@ const http = require('http');
 const PORT = process.env.PORT || 3000;
 
 http.createServer((req, res) => {
-    res.end('Bot is running');
+    res.end('Бот - запущен');
 }).listen(PORT, () => {
     console.log(`HTTP-сервер запущен на порту ${PORT}`);
 });
@@ -47,10 +47,10 @@ async function checkServer() {
                 console.log('Сервер онлайн, готовим уведомление...');
 
                 const embed = new EmbedBuilder()
-                    .setTitle('🟢 Сервер запущен!')
-                    .setColor(0x57F287)
-                    .setDescription('Уведомляю что сервер запущен! Приятной игры 🎮')
-                    .setFooter({ text: 'Queue Botty • следит за сервером для тебя' })
+                    .setTitle('👀 Сервер запущен!')
+                    .setColor(0x9B59B6)
+                    .setDescription('Уведомляю! Давай заходи! 🚀')
+                    .setFooter({ text: 'Queue Botty • Made With ❤️' })
                     .setTimestamp();
 
                 const row = new ActionRowBuilder().addComponents(
@@ -70,9 +70,9 @@ async function checkServer() {
                     try {
                         const user = await client.users.fetch(userId);
                         await user.send({ embeds: [embed], components: [row] });
-                        console.log(`Успешно отправлено пользователю: ${user.tag}`);
+                        console.log(`О, я отправил сообщение пользователью: ${user.tag}`);
                     } catch (err) {
-                        console.error('Ошибка при отправке ЛС:', err.message);
+                        console.error('Я не смог отправить сообщение:', err.message);
                     }
                 };
 
@@ -95,15 +95,18 @@ client.on('interactionCreate', async (interaction) => {
 
     try {
         if (interaction.customId === 'get_ip') {
-            await interaction.reply(`📋 IP сервера: \`${SERVER_IP}\``);
+            await interaction.reply({
+                content: `📋 IP сервера: \`${SERVER_IP}\``,
+                ephemeral: true
+            });
         }
 
         if (interaction.customId === 'get_players') {
-            await interaction.deferReply();
+            await interaction.deferReply({ ephemeral: true });
             const data = await getServerStatus();
 
             if (!data.online) {
-                await interaction.editReply('😴 Сервер сейчас оффлайн.');
+                await interaction.editReply('😴 Сервер на данный момент оффлайн.');
                 return;
             }
 
@@ -123,7 +126,7 @@ client.on('interactionCreate', async (interaction) => {
 
 client.once('ready', () => {
     console.log(`Бот в сети: ${client.user.tag}`);
-    console.log(`Мониторим сервер: ${SERVER_IP}`);
+    console.log(`Мониторью сервер: ${SERVER_IP}`);
     checkServer();
     setInterval(checkServer, CHECK_INTERVAL);
 });
