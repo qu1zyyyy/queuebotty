@@ -26,6 +26,7 @@ const TOKEN = process.env.DISCORD_TOKEN;
 const MY_ID = '917065909762416641';
 const FRIEND_ID = '1239574407077171222';
 const SERVER_IP = 'operation-jessica.gl.joinmc.link';
+const CHECK_INTERVAL = 10000; // было 60000, теперь 10 секунд
 
 let isNotified = false;
 
@@ -124,7 +125,7 @@ client.once('ready', () => {
     console.log(`Бот в сети: ${client.user.tag}`);
     console.log(`Мониторим сервер: ${SERVER_IP}`);
     checkServer();
-    setInterval(checkServer, 60000);
+    setInterval(checkServer, CHECK_INTERVAL);
 });
 
 client.login(TOKEN);
