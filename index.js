@@ -1,15 +1,15 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const { status } = require('mcstatus');
 const http = require('http');
+
+// Настройка порта для Render (использует тот, что дает хостинг, или 3000 по умолчанию)
+const PORT = process.env.PORT || 3000;
+
 http.createServer((req, res) => {
     res.end('Bot is running');
-}).listen(3000);
-
-// Создаем HTTP-сервер для Render, чтобы он не выключал бота
-http.createServer((req, res) => {
-    res.write('Bot is running');
-    res.end();
-}).listen(3000);
+}).listen(PORT, () => {
+    console.log(`HTTP-сервер запущен на порту ${PORT}`);
+});
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
@@ -51,7 +51,7 @@ client.once('ready', () => {
                             const user = await client.users.fetch(userId);
                             await user.send({ embeds: [embed] });
                         } catch (err) {
-                            console.error(`Ошибка при отправке сообщения пользователю ${userId}:`, err);
+                            console.error(`Ошибка при отправке ЛС пользователю ${userId}:`, err);
                         }
                     };
 
