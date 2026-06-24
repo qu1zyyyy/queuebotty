@@ -2,7 +2,6 @@ const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const { status } = require('mcstatus');
 const http = require('http');
 
-// Настройка порта для Render (использует тот, что дает хостинг, или 3000 по умолчанию)
 const PORT = process.env.PORT || 3000;
 
 http.createServer((req, res) => {
@@ -15,60 +14,57 @@ const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
 
-// НАСТРОЙКИ
 const TOKEN = process.env.DISCORD_TOKEN;
-const MY_ID = '917065909762416641'; // Замени на свой ID
-const FRIEND_ID = 'ID_ДРУГА'; // Замени на ID друга
+const MY_ID = '917065909762416641';
+const FRIEND_ID = '1239574407077171222'; // <--- ВАЖНО: Если тут текст, бот будет выдавать ошибку!
 const SERVER_IP = 'operation-jessica.gl.joinmc.link';
 
 let isNotified = false;
 
 client.once('ready', () => {
     console.log(`Бот в сети: ${client.user.tag}`);
+    console.log(`Мониторим сервер: ${SERVER_IP}`);
+});
 
-    setInterval(async () => {
-        try {
-            const res = await status.java(SERVER_IP);
+setInterval(async () => {
+    try {
+        console.log(`Проверяем статус сервера...`);
+        const res = await status.java(SERVER_IP);
+        console.log(`Статус: ${res.online ? 'ОНЛАЙН' : 'ОФФЛАЙН'}`);
 
-            if (res.online) {
-                if (!isNotified) {
-                    const playersList = res.players.list && res.players.list.length > 0
-                        ? res.players.list.map(p => p.name_clean).join(', ')
-                        : "Никого нет";
+        if (res.online) {
+            if (!isNotified) {
+                console.log("Сервер онлайн, готовим уведомление...");
 
-                    const embed = new EmbedBuilder()
-                        .setTitle('🚀 Сервер запущен!')
-                        .setColor(0x00FF00)
-                        .setDescription(`Приятной игры! Скопируй IP ниже:`)
-                        .addFields(
-                            { name: 'IP адрес', value: `\`${SERVER_IP}\`` },
-                            { name: `Игроки (${res.players.online}/${res.players.max})`, value: playersList }
-                        )
-                        .setTimestamp();
+                const embed = new EmbedBuilder()
+                    .setTitle('🚀 Сервер запущен!')
+                    .setColor(0x00FF00)
+                    .setDescription(`IP: \`${SERVER_IP}\``)
+                    .setTimestamp();
 
-                    const sendDM = async (userId) => {
-                        try {
-                            const user = await client.users.fetch(userId);
-                            console.log(`Попытка отправить ЛС пользователю: ${user.tag}`);
-                            await user.send({ embeds: [embed] });
-                            console.log(`Успешно отправлено пользователю: ${user.tag}`);
-                        } catch (err) {
-                            console.error(`Ошибка при отправке ЛС пользователю ${userId}:`, err);
-                        }
-                    };
+                const sendDM = async (userId) => {
+                    if (!userId || userId === 'ID_ДРУГА') return; // Проверка, чтобы не слать на текст
+                    try {
+                        const user = await client.users.fetch(userId);
+                        await user.send({ embeds: [embed] });
+                        console.log(`Успешно отправлено пользователю: ${user.tag}`);
+                    } catch (err) {
+                        console.error(`Ошибка при отправке ЛС:`, err);
+                    }
+                };
 
-                    await sendDM(MY_ID);
-                    await sendDM(FRIEND_ID);
+                await sendDM(MY_ID);
+                await sendDM(FRIEND_ID);
 
-                    isNotified = true;
-                }
-            } else {
-                isNotified = false;
+                isNotified = true;
             }
-        } catch (e) {
+        } else {
             isNotified = false;
         }
-    }, 30000);
-});
+    } catch (e) {
+        console.error("Ошибка при проверке сервера:", e.message);
+        isNotified = false;
+    }
+}, 60000); // Увеличил до 60 секунд, чтобы Render не ругался
 
 client.login(TOKEN);
